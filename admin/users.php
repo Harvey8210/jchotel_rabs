@@ -47,9 +47,14 @@ include "includes/sidebar.php";
 <div class="col-md-9 col-lg-10 ms-auto main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>User Management</h2>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-            <i class="fas fa-plus me-2"></i>Add New User
-        </button>
+        <div>
+            <a href="add_user.php" class="btn btn-primary me-2">
+                <i class="fas fa-plus me-2"></i>Add New User
+            </a>
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="fas fa-user-plus me-2"></i>Quick Add
+            </button>
+        </div>
     </div>
 
     <?php if (isset($success_message)): ?>

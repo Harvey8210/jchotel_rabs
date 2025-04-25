@@ -10,32 +10,59 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'frontdesk') {
     exit();
 }
 
-// Validate category parameter
-if (!isset($_GET['category']) || empty($_GET['category'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Category parameter is required']);
-    exit();
+// Get parameters
+$room_type = isset($_GET['type']) ? $_GET['type'] : '';
+$check_in = isset($_GET['check_in']) ? $_GET['check_in'] : '';
+$check_out = isset($_GET['check_out']) ? $_GET['check_out'] : '';
+
+// Validate parameters
+if (empty($room_type) || empty($check_in) || empty($check_out)) {
+    echo json_encode(['error' => 'Missing required parameters']);
+    exit;
 }
 
-$category = $_GET['category'];
+try {
+    // Query to get available rooms
+    $query = "
+        SELECT r.room_number, r.price, r.type
+        FROM rooms r
+        WHERE r.type = ?
+        AND r.room_number NOT IN (
+            SELECT rm.room_number
+            FROM reservations res
+            JOIN rooms rm ON res.room_id = rm.room_id
+            WHERE (
+                (res.check_in <= ? AND res.check_out >= ?) OR
+                (res.check_in <= ? AND res.check_out >= ?) OR
+                (res.check_in >= ? AND res.check_out <= ?)
+            )
+            AND res.status != 'cancelled'
+        )
+        ORDER BY CAST(r.room_number AS UNSIGNED)
+    ";
 
-// Validate category value
-$valid_categories = ['standard', 'deluxe', 'superior', 'suite'];
-if (!in_array(strtolower($category), $valid_categories)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid category']);
-    exit();
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("ssssss", 
+        $room_type,
+        $check_out, $check_in,  // First overlap check
+        $check_out, $check_in,  // Second overlap check
+        $check_in, $check_out   // Third overlap check
+    );
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $rooms = [];
+    while ($row = $result->fetch_assoc()) {
+        $rooms[] = [
+            'room_number' => $row['room_number'],
+            'price' => $row['price'],
+            'type' => $row['type']
+        ];
+    }
+
+    echo json_encode($rooms);
+
+} catch (Exception $e) {
+    echo json_encode(['error' => $e->getMessage()]);
 }
-
-// Get available rooms for the selected category
-$rooms = getAvailableRoomsByCategory($conn, $category);
-
-// Convert result to array
-$rooms_array = [];
-while ($room = $rooms->fetch_assoc()) {
-    $rooms_array[] = $room;
-}
-
-// Return JSON response
-header('Content-Type: application/json');
-echo json_encode($rooms_array); 
+?> 

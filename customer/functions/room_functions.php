@@ -4,11 +4,41 @@ include '../config/db_connection.php';
 /**
  * Get all available rooms
  * @param mysqli $conn Database connection
+ * @param string|null $checkIn Check-in date (optional)
+ * @param string|null $checkOut Check-out date (optional)
  * @return mysqli_result Result set of available rooms
  */
-function getAvailableRooms($conn) {
-    $query = "SELECT * FROM rooms WHERE status = 'available'";
-    return $conn->query($query);
+function getAvailableRooms($conn, $checkIn = null, $checkOut = null) {
+    $query = "SELECT r.*, 
+              NOT EXISTS (
+                  SELECT 1 FROM reservations res 
+                  WHERE res.room_id = r.room_id 
+                  AND res.status NOT IN ('checked-out', 'cancelled')
+                  AND (
+                    (res.check_in <= ? AND res.check_out >= ?)
+                    OR (res.check_in <= ? AND res.check_out >= ?)
+                    OR (res.check_in >= ? AND res.check_out <= ?)
+                  )
+              ) as is_available
+              FROM rooms r";
+    
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        return false;
+    }
+
+    // If no dates provided, use current date and tomorrow
+    if (!$checkIn) $checkIn = date('Y-m-d');
+    if (!$checkOut) $checkOut = date('Y-m-d', strtotime('+1 day'));
+
+    $stmt->bind_param("ssssss", 
+        $checkOut, $checkIn,
+        $checkOut, $checkOut,
+        $checkIn, $checkOut
+    );
+    
+    $stmt->execute();
+    return $stmt->get_result();
 }
 
 /**
@@ -95,4 +125,20 @@ function isRoomAvailableForDates($conn, $room_id, $check_in, $check_out) {
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
     return $result['count'] == 0;
-} 
+}
+
+/**
+ * Get room type description
+ * @param string $type Room type
+ * @return string Room type description
+ */
+function getRoomTypeDescription($type) {
+    $descriptions = [
+        'standard' => 'Cozy room with essential amenities perfect for solo travelers or couples.',
+        'deluxe' => 'Spacious room with premium furnishings and city views.',
+        'superior' => 'Luxury room with additional living space and enhanced amenities.',
+        'suite' => 'Our finest accommodation with separate living area and premium services.'
+    ];
+    
+    return $descriptions[$type] ?? 'Comfortable room with modern amenities.';
+}

@@ -10,13 +10,8 @@ function sanitize_input($data) {
 }
 
 // Check if user is logged in
-function is_logged_in() {
-    return isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true;
-}
-
-// Redirect if not logged in
 function require_login() {
-    if (!is_logged_in()) {
+    if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
         header("location: login.php");
         exit;
     }
@@ -54,6 +49,49 @@ function add_user($conn, $username, $password, $full_name, $role) {
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, "ssss", $username, $hashed_password, $full_name, $role);
     return mysqli_stmt_execute($stmt);
+}
+
+// Add new user by staff (with role restrictions)
+function staff_add_user($conn, $username, $password, $full_name, $role) {
+    // Check if the current user is staff
+    if (!isset($_SESSION["role"]) || $_SESSION["role"] !== "staff") {
+        return array("success" => false, "message" => "Unauthorized access");
+    }
+    
+    // Validate role - staff can only create staff or frontdesk users
+    if ($role !== "staff" && $role !== "frontdesk") {
+        return array("success" => false, "message" => "You can only create staff or frontdesk users");
+    }
+    
+    // First check if username already exists
+    $check_sql = "SELECT user_id FROM users WHERE username = ?";
+    $check_stmt = mysqli_prepare($conn, $check_sql);
+    mysqli_stmt_bind_param($check_stmt, "s", $username);
+    mysqli_stmt_execute($check_stmt);
+    mysqli_stmt_store_result($check_stmt);
+    
+    if (mysqli_stmt_num_rows($check_stmt) > 0) {
+        return array("success" => false, "message" => "Username already exists");
+    }
+    
+    // Validate password
+    if (strlen($password) < 6) {
+        return array("success" => false, "message" => "Password must be at least 6 characters long");
+    }
+    
+    // Hash the password
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    
+    // Insert the new user
+    $sql = "INSERT INTO users (username, password, full_name, role, created_at) VALUES (?, ?, ?, ?, NOW())";
+    $stmt = mysqli_prepare($conn, $sql);
+    mysqli_stmt_bind_param($stmt, "ssss", $username, $hashed_password, $full_name, $role);
+    
+    if (mysqli_stmt_execute($stmt)) {
+        return array("success" => true, "message" => "User added successfully");
+    } else {
+        return array("success" => false, "message" => "Error adding user: " . mysqli_error($conn));
+    }
 }
 
 // Add new room

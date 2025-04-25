@@ -121,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get room statistics
-$room_stats = getRoomStatistics($conn);
 
 // Get room categories
 $room_categories = getRoomCategories($conn);
@@ -133,38 +132,8 @@ $today_checkins = getTodaysCheckIns($conn);
 $today_checkouts = getTodaysCheckOuts($conn);
 
 // Get available rooms for dropdown
-$stmt = $conn->prepare("
-    SELECT room_id, room_number, type, price
-    FROM rooms 
-    WHERE status = 'available'
-    ORDER BY room_number
-");
-$stmt->execute();
-$available_rooms_dropdown = $stmt->get_result();
 
-// Get available rooms with images
-$stmt = $conn->prepare("
-    SELECT r.*, 
-           (SELECT COUNT(*) FROM reservations res 
-            WHERE res.room_id = r.room_id 
-            AND res.status IN ('confirmed', 'checked-in')) as active_reservations
-    FROM rooms r 
-    WHERE r.status = 'available'
-    ORDER BY r.room_number
-");
-$stmt->execute();
-$available_rooms = $stmt->get_result();
 
-// Get available rooms for dropdown by category
-$stmt = $conn->prepare("
-    SELECT room_id, room_number, type, price, description
-    FROM rooms 
-    WHERE status = 'available' AND type = ?
-    ORDER BY room_number
-");
-$stmt->bind_param("s", $selected_category);
-$stmt->execute();
-$available_rooms_by_category = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -233,39 +202,7 @@ $available_rooms_by_category = $stmt->get_result();
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="text-center mb-4">
-                    <img src="../img/logo.png" alt="JC Hotel Logo" style="width: 80px;">
-                    <h5 class="mt-2">Frontdesk Panel</h5>
-                </div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="walk_in_reservation.php">
-                            <i class="fas fa-user-plus me-2"></i>Walk-in Reservations
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="check_in.php">
-                            <i class="fas fa-sign-in-alt me-2"></i>Check-in
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="check_out.php">
-                            <i class="fas fa-sign-out-alt me-2"></i>Check-out
-                        </a>
-                    </li>
-                    <li class="nav-item mt-4">
-                        <a class="nav-link text-danger" href="../admin/logout.php">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <?php include'includes/sidebar.php'?>
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content">
@@ -296,62 +233,6 @@ $available_rooms_by_category = $stmt->get_result();
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
-
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card stats-card bg-primary">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title mb-0">Available Rooms</h6>
-                                        <h2 class="mt-2 mb-0"><?php echo $room_stats['available_rooms']; ?></h2>
-                                    </div>
-                                    <i class="fas fa-door-open"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card bg-success">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title mb-0">Occupied Rooms</h6>
-                                        <h2 class="mt-2 mb-0"><?php echo $room_stats['occupied_rooms']; ?></h2>
-                                    </div>
-                                    <i class="fas fa-bed"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card bg-warning">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title mb-0">Reserved Rooms</h6>
-                                        <h2 class="mt-2 mb-0"><?php echo $room_stats['reserved_rooms']; ?></h2>
-                                    </div>
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card bg-danger">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="card-title mb-0">Maintenance</h6>
-                                        <h2 class="mt-2 mb-0"><?php echo $room_stats['maintenance_rooms']; ?></h2>
-                                    </div>
-                                    <i class="fas fa-tools"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Room Categories -->
                 <div class="card">
@@ -387,69 +268,69 @@ $available_rooms_by_category = $stmt->get_result();
                                         </div>
                                     </div>
                                 </div>
-                            <?php endwhile; ?>
+                                <?php endwhile; ?>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Available Rooms Modal -->
-                <div class="modal fade" id="availableRoomsModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Available Rooms - <span id="categoryTitle"></span></h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="roomSelectModal" class="form-label">Select Room</label>
-                                    <select class="form-select" id="roomSelectModal">
-                                        <option value="">Choose a room...</option>
-                                    </select>
+                    <!-- Available Rooms Modal -->
+                    <div class="modal fade" id="availableRoomsModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Available Rooms - <span id="categoryTitle"></span></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div id="roomDetails" class="mt-3" style="display: none;">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted">Room Details</h6>
-                                            <p class="card-text mb-1"><strong>Room Number:</strong> <span id="roomNumber"></span></p>
-                                            <p class="card-text mb-1"><strong>Type:</strong> <span id="roomType"></span></p>
-                                            <p class="card-text mb-1"><strong>Price:</strong> ₱<span id="roomPrice"></span></p>
-                                            <p class="card-text"><strong>Description:</strong> <span id="roomDescription"></span></p>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="roomSelectModal" class="form-label">Select Room</label>
+                                        <select class="form-select" id="roomSelectModal">
+                                            <option value="">Choose a room...</option>
+                                        </select>
+                                    </div>
+                                    <div id="roomDetails" class="mt-3" style="display: none;">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-subtitle mb-2 text-muted">Room Details</h6>
+                                                <p class="card-text mb-1"><strong>Room Number:</strong> <span id="roomNumber"></span></p>
+                                                <p class="card-text mb-1"><strong>Type:</strong> <span id="roomType"></span></p>
+                                                <p class="card-text mb-1"><strong>Price:</strong> ₱<span id="roomPrice"></span></p>
+                                                <p class="card-text"><strong>Description:</strong> <span id="roomDescription"></span></p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" id="bookNowBtn" onclick="bookSelectedRoomFromModal()" style="display: none;">
-                                    <i class="fas fa-book me-1"></i>Book Now
-                                </button>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary" id="bookNowBtn" onclick="bookSelectedRoomFromModal()" style="display: none;">
+                                        <i class="fas fa-book me-1"></i>Book Now
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Reservation Form Modal -->
-                <div class="modal fade" id="reservationModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">New Reservation</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="reservationForm" method="POST">
-                            <input type="hidden" name="action" value="create_reservation">
-                                    <input type="hidden" name="room_id" id="selectedRoomId">
-                            
-                                    <div class="mb-3">
-                                <label class="form-label">Customer Name</label>
-                                <input type="text" name="customer_name" class="form-control" required>
-                            </div>
-                            
-                                    <div class="mb-3">
-                                <label class="form-label">Phone Number</label>
-                                <input type="tel" name="phone" class="form-control" required>
+                    <!-- Reservation Form Modal -->
+                    <div class="modal fade" id="reservationModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">New Reservation</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="reservationForm" method="POST">
+                                <input type="hidden" name="action" value="create_reservation">
+                                        <input type="hidden" name="room_id" id="selectedRoomId">
+                                
+                                        <div class="mb-3">
+                                    <label class="form-label">Customer Name</label>
+                                    <input type="text" name="customer_name" class="form-control" required>
+                                </div>
+                                
+                                        <div class="mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" name="phone" class="form-control" required>
                             </div>
                             
                                     <div class="mb-3">
@@ -689,6 +570,165 @@ $available_rooms_by_category = $stmt->get_result();
                 alert('Please select a room first.');
             }
         }
+    </script>
+
+    <!-- Walk-in Reservation Modal -->
+    <div class="modal fade" id="walkInReservationModal" tabindex="-1" aria-labelledby="walkInReservationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="walkInReservationModalLabel">
+                        <i class="bi bi-person-plus me-2"></i>Walk-in Reservation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="walkInReservationForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" class="form-control" name="customer_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contact Number</label>
+                                <input type="tel" class="form-control" name="contact_number" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Room</label>
+                                <select class="form-select" name="room_id" id="walkInRoomSelect" required>
+                                    <option value="">Select Room</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Room Type</label>
+                                <input type="text" class="form-control" id="walkInRoomType" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Check-in Date & Time</label>
+                                <input type="datetime-local" class="form-control" name="check_in" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Check-out Date & Time</label>
+                                <input type="datetime-local" class="form-control" name="check_out" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" name="notes" rows="3"></textarea>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Total Amount</label>
+                                <input type="number" class="form-control" name="total_amount" id="walkInTotalAmount" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Status</label>
+                                <select class="form-select" name="payment_status" required>
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="paid">Paid</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveWalkInReservation">
+                        <i class="bi bi-save me-2"></i>Save Reservation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Add this to your existing JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize walk-in reservation modal
+        const walkInModal = new bootstrap.Modal(document.getElementById('walkInReservationModal'));
+        
+        // Load available rooms for walk-in reservation
+        function loadAvailableRooms() {
+            fetch('get_available_rooms.php')
+                .then(response => response.json())
+                .then(data => {
+                    const roomSelect = document.getElementById('walkInRoomSelect');
+                    roomSelect.innerHTML = '<option value="">Select Room</option>';
+                    
+                    data.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.room_id;
+                        option.textContent = `Room ${room.room_number} - ${room.room_type}`;
+                        option.dataset.price = room.price;
+                        option.dataset.type = room.room_type;
+                        roomSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading rooms:', error));
+        }
+
+        // Update room type and price when room is selected
+        document.getElementById('walkInRoomSelect').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                document.getElementById('walkInRoomType').value = selectedOption.dataset.type;
+                document.getElementById('walkInTotalAmount').value = selectedOption.dataset.price;
+            } else {
+                document.getElementById('walkInRoomType').value = '';
+                document.getElementById('walkInTotalAmount').value = '';
+            }
+        });
+
+        // Handle walk-in reservation form submission
+        document.getElementById('saveWalkInReservation').addEventListener('click', function() {
+            const form = document.getElementById('walkInReservationForm');
+            const formData = new FormData(form);
+            
+            // Convert form data to JSON
+            const data = {
+                customer_name: formData.get('customer_name'),
+                contact_number: formData.get('contact_number'),
+                room_id: formData.get('room_id'),
+                check_in: formData.get('check_in'),
+                check_out: formData.get('check_out'),
+                notes: formData.get('notes'),
+                total_amount: formData.get('total_amount'),
+                payment_status: formData.get('payment_status')
+            };
+
+            // Send data to server
+            fetch('process_walk_in.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Walk-in reservation saved successfully!');
+                    walkInModal.hide();
+                    form.reset();
+                    // Refresh your reservations table or list here
+                    loadReservations(); // Assuming you have this function
+                } else {
+                    alert('Error saving reservation: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the reservation');
+            });
+        });
+
+        // Load available rooms when modal is shown
+        document.getElementById('walkInReservationModal').addEventListener('show.bs.modal', loadAvailableRooms);
+    });
     </script>
 </body>
 </html> 
