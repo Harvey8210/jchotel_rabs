@@ -6,44 +6,75 @@ require_once 'functions/room_functions.php';
 
 // Check if user is logged in as customer
 if (!isset($_SESSION['customer_id']) || $_SESSION['role'] !== 'customer') {
-  header("Location: login.php");
+  header("Location: ../login.php");
   exit();
 }
 
-// Get available rooms
-$result = getAvailableRooms($conn);
+// Updated function to check room availability and insert reservation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_in'], $_POST['check_out'])) {
+    $checkIn = $_POST['check_in'];
+    $checkOut = $_POST['check_out'];
 
-// Get customer profile
-$customer_profile = getCustomerProfile($conn, $_SESSION['customer_id']);
+    $query = "SELECT r.room_id, r.room_number, r.type, r.price, r.image, r.description
+              FROM rooms r
+              WHERE NOT EXISTS (
+                  SELECT 1 FROM reservations res
+                  WHERE res.room_id = r.room_id
+                  AND (
+                      (res.check_in <= ? AND res.check_out >= ?)
+                      OR (res.check_in <= ? AND res.check_out >= ?)
+                      OR (res.check_in >= ? AND res.check_out <= ?)
+                  )
+                  AND res.status IN ('confirmed', 'checked-in')
+              )";
 
-// Get customer's active reservations
-$active_reservations = getCustomerActiveReservations($conn, $_SESSION['customer_id']);
-
-// Get customer's loyalty points
-$loyalty_points = getCustomerLoyaltyPoints($conn, $_SESSION['customer_id']);
-
-// Fetch reservations for the logged-in customer
-function getCustomerReservations($conn, $customer_id) {
-    $query = "SELECT r.reservation_id, r.check_in, r.check_out, rm.room_number, rm.type, rm.price 
-              FROM reservations r
-              JOIN rooms rm ON r.room_id = rm.room_id
-              WHERE r.customer_id = ? AND r.status = 'pending'";
     $stmt = $conn->prepare($query);
-    if (!$stmt) {
-        return false;
+    if ($stmt) {
+        $stmt->bind_param("ssssss", $checkIn, $checkIn, $checkOut, $checkOut, $checkIn, $checkOut);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $availableRooms = [];
+        while ($row = $result->fetch_assoc()) {
+            $availableRooms[] = $row;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'availableRooms' => $availableRooms
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database query error.'
+        ]);
     }
-    $stmt->bind_param("i", $customer_id);
-    if (!$stmt->execute()) {
-        return false;
-    }
-    return $stmt->get_result();
+    exit;
 }
 
-$customer_reservations = getCustomerReservations($conn, $_SESSION['customer_id']);
-if ($customer_reservations === false) {
-    $customer_reservations = new stdClass();
-    $customer_reservations->num_rows = 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['check_in'], $_POST['check_out'])) {
+    $roomId = $_POST['room_id'];
+    $checkIn = $_POST['check_in'];
+    $checkOut = $_POST['check_out'];
+    $customerId = $_SESSION['customer_id']; // Assuming customer is logged in
+
+    $query = "INSERT INTO reservations (room_id, customer_id, check_in, check_out, status) VALUES (?, ?, ?, ?, 'pending')";
+    $stmt = $conn->prepare($query);
+
+    if ($stmt) {
+        $stmt->bind_param("iiss", $roomId, $customerId, $checkIn, $checkOut);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Reservation successfully created.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to create reservation.']);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Database error.']);
+    }
+    exit;
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -97,7 +128,7 @@ if ($customer_reservations === false) {
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="#hero" class="active">Home</a></li>
-          <li><a href="#Rooms">Rooms</a></li>
+          <li><a href="#availability-checker">Rooms</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="#teams">Teams</a></li>
           <li class="dropdown">
@@ -112,14 +143,6 @@ if ($customer_reservations === false) {
               </li>
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
             </ul>
-          </li>
-          <li>
-            <a href="#" class="book-icon position-relative">
-              <i class="bi bi-book"></i>
-              <span class="book-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                0
-              </span>
-            </a>
           </li>
         </ul>
       </nav>
@@ -164,108 +187,223 @@ if ($customer_reservations === false) {
       </div>
     </section><!-- /Hero Section -->
 
-    <section id="booking-widget" class="booking-widget section">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-lg-8">
-            <h3 class="text-center mb-4">Check Room Availability</h3>
-            <div class="booking-form-wrapper" data-aos="fade-up">
-              <form id="availabilityForm" class="availability-form">
-                <div class="row g-3">
-                  <div class="col-md-5">
-                    <label for="checkInDate" class="form-label">Check In</label>
-                    <input type="date" class="form-control" id="checkInDate" name="checkIn" required>
-                  </div>
-                  <div class="col-md-5">
-                    <label for="checkOutDate" class="form-label">Check Out</label>
-                    <input type="date" class="form-control" id="checkOutDate" name="checkOut" required>
-                  </div>
-                  <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Check</button>
-                  </div>
-                </div>
-                <div id="availabilityResults" class="mt-4"></div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section><!-- /Booking Widget Section -->
+    <!-- Availability Checker Form -->
+    <style>
+        #availability-checker {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 3rem 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
 
-    <!-- Rooms Section -->
-    <section id="Rooms" class="rooms section">
-      <div class="container">
-        <div class="section-title" data-aos="fade-up">
-          <h2>Rooms</h2>
-          <p>Choose from our selection of comfortable rooms</p>
-        </div>
+        #availability-checker h5 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1b5e20;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
-        <div class="room-filters mb-5" data-aos="fade-up">
-          <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-outline-primary active" data-filter="all">All Rooms</button>
-            <button class="btn btn-outline-primary" data-filter="standard">Standard</button>
-            <button class="btn btn-outline-primary" data-filter="deluxe">Deluxe</button>
-            <button class="btn btn-outline-primary" data-filter="superior">Superior</button>
-            <button class="btn btn-outline-primary" data-filter="suite">Suite</button>
-          </div>
-        </div>
+        #availability-checker .form-label {
+            font-weight: 600;
+            color: #2e7d32;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
 
-        <div class="row gy-4" id="roomsGrid">
-          <?php
-          $checkIn = $_GET['checkIn'] ?? date('Y-m-d');
-          $checkOut = $_GET['checkOut'] ?? date('Y-m-d', strtotime('+1 day'));
-          $rooms = getAvailableRooms($conn, $checkIn, $checkOut);
-          
-          if ($rooms && $rooms->num_rows > 0):
-            while ($room = $rooms->fetch_assoc()):
-              $isAvailable = $room['is_available'];
-          ?>
-            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-room-type="<?php echo htmlspecialchars($room['type']); ?>">
-              <div class="card room-card <?php echo $isAvailable ? 'available' : 'booked'; ?>">
-                <div class="room-img">
-                  <img src="../img/rooms/<?php echo htmlspecialchars($room['type']); ?>.jpg" class="card-img-top" alt="Room Image">
-                  <?php if ($isAvailable): ?>
-                    <div class="status-badge available">Available</div>
-                  <?php else: ?>
-                    <div class="status-badge booked">Booked</div>
-                  <?php endif; ?>
+        #availability-checker .form-control {
+            border: 2px solid #e0e0e0;
+            padding: 1rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        #availability-checker .form-control:hover {
+            border-color: #2e7d32;
+        }
+
+        #availability-checker .form-control:focus {
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 0.25rem rgba(46, 125, 50, 0.15);
+            background: #fff;
+        }
+
+        #availability-checker .btn-primary {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        #availability-checker .btn-primary:hover {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+        }
+
+       
+    </style>
+
+    <section id="availability-checker" class="availability-checker">
+        <div class="container">
+            <div class="card mt-4">
+                <div class="card-header text-black">
+                    <h5>Check Room Availability</h5>
                 </div>
                 <div class="card-body">
-                  <h5 class="card-title"><?php echo ucfirst(htmlspecialchars($room['type'])); ?> Room</h5>
-                  <p><strong>Room #:</strong> <?php echo htmlspecialchars($room['room_number']); ?></p>
-                  
-                  <div class="price mb-3"><strong>₱<?php echo number_format($room['price'], 2); ?> / night</strong></div>
-                  <div class="d-flex justify-content-between">
-                    <?php if ($isAvailable): ?>
-                      <button class="btn btn-primary book-now" 
-                              data-room-id="<?php echo $room['room_id']; ?>"
-                              data-room-type="<?php echo htmlspecialchars($room['type']); ?>"
-                              data-room-price="<?php echo $room['price']; ?>">
-                        <i class="bi bi-calendar-check me-2"></i>Book Now
-                      </button>
-                    <?php else: ?>
-                      <button class="btn btn-secondary" disabled>
-                        <i class="bi bi-x-circle me-2"></i>Not Available
-                      </button>
-                    <?php endif; ?>
-                    
-                  </div>
+                    <form id="availabilityForm" method="POST">
+                        <div class="row align-items-end">
+                            <div class="col-md-4">
+                                <label for="checkIn" class="form-label">Check-In Date</label>
+                                <input type="date" id="checkIn" name="check_in" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="checkOut" class="form-label">Check-Out Date</label>
+                                <input type="date" id="checkOut" name="check_out" class="form-control" required>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <button type="submit" class="btn btn-primary w-100">Check Availability</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-              </div>
             </div>
-          <?php 
-            endwhile;
-          else:
-          ?>
-            <div class="col-12 text-center">
-              <p>No rooms found for the selected dates.</p>
-            </div>
-          <?php endif; ?>
+            <div id="availabilityResults" class="mt-4"></div>
         </div>
-      </div>
-    </section><!-- /Rooms Section -->
+    </section>
 
-    
+    <!-- Modal -->
+    <div class="modal fade" id="bookNowModal" tabindex="-1" aria-labelledby="bookNowModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookNowModalLabel">Room Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Room Number:</strong> <span id="modalRoomNumber"></span></p>
+                    <p><strong>Room Type:</strong> <span id="modalRoomType"></span></p>
+                    <p><strong>Description:</strong> <span id="modalRoomDescription"></span></p>
+                    <p><strong>Price per Night:</strong> ₱<span id="modalRoomPrice"></span></p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="modalCheckIn" class="form-label">Check-In Date</label>
+                            <input type="date" id="modalCheckIn" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modalCheckOut" class="form-label">Check-Out Date</label>
+                            <input type="date" id="modalCheckOut" class="form-control">
+                        </div>
+                    </div>
+                    <p class="mt-3"><strong>Total Price:</strong> ₱<span id="modalTotalPrice">0</span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="confirmBooking">Confirm Booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .rooms-section {
+        padding: 4rem 0;
+        background: #f8f9fa;
+    }
+
+    .section-title {
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1b5e20;
+    }
+
+    .room-card {
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .room-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .room-img {
+        position: relative;
+        height: 200px;
+        overflow: hidden;
+    }
+
+    .room-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .room-card:hover .room-img img {
+        transform: scale(1.1);
+    }
+
+    .room-info {
+        padding: 20px;
+    }
+
+    .room-info h4 {
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .room-description {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0.5rem 0;
+    }
+
+    .room-features {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    .room-features span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .room-features i {
+        color: #1b5e20;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: bold;
+        color: #fff;
+        text-transform: uppercase;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+    }
+    </style>
 
     <section id="about" class="about section">
       <div class="container">
@@ -465,227 +603,150 @@ if ($customer_reservations === false) {
   <script src="assets/js/main.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Mobile Navigation
-      const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
-      const mobileNav = document.querySelector('.mobile-nav');
-      const currentPath = window.location.pathname;
-      const currentHash = window.location.hash;
-
-      // Handle active state for navigation links
-      const navLinks = document.querySelectorAll('.mobile-nav-list a');
-      navLinks.forEach(link => {
-        const href = link.getAttribute('href');
-        if (href === currentPath || (href.includes(currentHash) && currentHash)) {
-          link.classList.add('active');
-        }
-      });
-
-      // Toggle mobile navigation
-      mobileNavToggle.addEventListener('click', function() {
-        mobileNav.classList.toggle('show');
-        this.classList.toggle('bi-list');
-        this.classList.toggle('bi-x');
-      });
-
-      // Close mobile navigation when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!mobileNav.contains(e.target) && !mobileNavToggle.contains(e.target)) {
-          mobileNav.classList.remove('show');
-          mobileNavToggle.classList.add('bi-list');
-          mobileNavToggle.classList.remove('bi-x');
-        }
-      });
-
-      // Availability checker functionality
-      const availabilityForm = document.getElementById('availabilityForm');
-      const checkInDate = document.getElementById('checkInDate');
-      const checkOutDate = document.getElementById('checkOutDate');
-      const resultsDiv = document.getElementById('availabilityResults');
-
-      // Set minimum date to today
-      const today = new Date().toISOString().split('T')[0];
-      checkInDate.min = today;
-
-      // Update checkout min date when checkin changes
-      checkInDate.addEventListener('change', function() {
-        checkOutDate.min = this.value;
-        if (checkOutDate.value && checkOutDate.value < this.value) {
-          checkOutDate.value = this.value;
-        }
-      });
-
-      // Handle availability check submission
-      availabilityForm.addEventListener('submit', handleAvailabilityCheck);
-
-      function handleAvailabilityCheck(e) {
+    document.getElementById('availabilityForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
 
-        fetch('check_availability.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `checkIn=${checkInDate.value}&checkOut=${checkOutDate.value}`
+        const formData = new FormData(this);
+
+        fetch('', {
+            method: 'POST',
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
-          if (data.available) {
-            resultsDiv.innerHTML = `
-              <div class="alert alert-success">
-                <h5>Rooms Available!</h5>
-                <p>${data.message}</p>
-                <a href="#Rooms" class="btn btn-primary btn-sm">View Available Rooms</a>
-              </div>`;
-          } else {
-            resultsDiv.innerHTML = `
-              <div class="alert alert-warning">
-                <h5>Limited Availability</h5>
-                <p>${data.message}</p>
-              </div>`;
-          }
+            const resultsDiv = document.getElementById('availabilityResults');
+            resultsDiv.innerHTML = '';
+
+            if (data.success && data.availableRooms.length > 0) {
+                let rowDiv = document.createElement('div');
+                rowDiv.classList.add('row', 'gy-4');
+
+                data.availableRooms.forEach((room, index) => {
+                    const colDiv = document.createElement('div');
+                    colDiv.classList.add('col-md-4');
+
+                    colDiv.innerHTML = `
+                        <div class="room-card">
+                            <div class="room-img">
+                                <img src="../img/rooms/${room.image}" alt="Room Image">
+                            </div>
+                            <div class="room-info">
+                                <h4>Room #${room.room_number}</h4>
+                                <p>${room.description}</p>
+                                <p>Type: ${room.type}</p>
+                                <p>Price: ₱${room.price}</p>
+                                <div class="d-flex justify-content-center mt-2">
+                                    <button class="btn btn-primary book-now" data-room-id="${room.room_id}">Book Now</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    rowDiv.appendChild(colDiv);
+
+                    // Append a new row after every 3 columns
+                    if ((index + 1) % 3 === 0) {
+                        resultsDiv.appendChild(rowDiv);
+                        rowDiv = document.createElement('div');
+                        rowDiv.classList.add('row', 'gy-4');
+                    }
+                });
+
+                // Append any remaining columns
+                if (rowDiv.children.length > 0) {
+                    resultsDiv.appendChild(rowDiv);
+                }
+
+                document.querySelectorAll('.book-now').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const roomId = this.getAttribute('data-room-id');
+                        const roomNumber = this.closest('.room-info').querySelector('h4').textContent;
+                        const roomType = this.closest('.room-info').querySelector('p:nth-of-type(2)').textContent.split(': ')[1];
+                        const roomDescription = this.closest('.room-info').querySelector('p:nth-of-type(1)').textContent;
+                        const roomPrice = parseFloat(this.closest('.room-info').querySelector('p:nth-of-type(3)').textContent.split('₱')[1]);
+
+                        document.getElementById('modalRoomNumber').textContent = roomNumber;
+                        document.getElementById('modalRoomType').textContent = roomType;
+                        document.getElementById('modalRoomDescription').textContent = roomDescription;
+                        document.getElementById('modalRoomPrice').textContent = roomPrice;
+
+                        const checkInInput = document.getElementById('modalCheckIn');
+                        const checkOutInput = document.getElementById('modalCheckOut');
+                        const totalPriceElement = document.getElementById('modalTotalPrice');
+
+                        function calculateTotalPrice() {
+                            const checkInDate = new Date(checkInInput.value);
+                            const checkOutDate = new Date(checkOutInput.value);
+                            if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
+                                const days = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
+                                const totalPrice = days * roomPrice;
+                                totalPriceElement.textContent = totalPrice.toFixed(2);
+                            } else {
+                                totalPriceElement.textContent = '0';
+                            }
+                        }
+
+                        checkInInput.addEventListener('change', calculateTotalPrice);
+                        checkOutInput.addEventListener('change', calculateTotalPrice);
+
+                        const modal = new bootstrap.Modal(document.getElementById('bookNowModal'));
+                        modal.show();
+                    });
+                });
+            } else {
+                resultsDiv.innerHTML = '<p>No rooms available for the selected dates.</p>';
+            }
         })
         .catch(error => {
-          resultsDiv.innerHTML = `
-            <div class="alert alert-danger">
-              <p>Error checking availability. Please try again.</p>
-            </div>`;
+            console.error('Error:', error);
         });
-      }
-
-      // Room filtering functionality
-      const filterButtons = document.querySelectorAll('.room-filters button');
-      const roomsGrid = document.getElementById('roomsGrid');
-      const rooms = roomsGrid.querySelectorAll('.col-lg-4');
-
-      filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const filterValue = this.getAttribute('data-filter');
-          
-          // Update active button
-          filterButtons.forEach(btn => btn.classList.remove('active'));
-          this.classList.add('active');
-
-          // Filter rooms with animation
-          rooms.forEach(room => {
-            const roomType = room.getAttribute('data-room-type');
-            if (filterValue === 'all' || filterValue === roomType) {
-              room.style.display = 'block';
-              setTimeout(() => {
-                room.classList.add('show');
-                room.classList.remove('hide');
-              }, 50);
-            } else {
-              room.classList.add('hide');
-              room.classList.remove('show');
-              setTimeout(() => {
-                room.style.display = 'none';
-              }, 300);
-            }
-          });
-        });
-      });
-
-      // Room Details Modal
-      const roomDetailsModal = document.getElementById('roomDetailsModal');
-      const modalRoomImage = document.getElementById('modalRoomImage');
-      const modalRoomType = document.getElementById('modalRoomType');
-      const modalRoomDescription = document.getElementById('modalRoomDescription');
-      const modalRoomNumber = document.getElementById('modalRoomNumber');
-      const modalRoomPrice = document.getElementById('modalRoomPrice');
-
-      document.querySelectorAll('.view-details').forEach(button => {
-        button.addEventListener('click', function() {
-          const roomType = this.getAttribute('data-room-type');
-          const roomNumber = this.getAttribute('data-room-number');
-          const roomPrice = this.getAttribute('data-room-price');
-
-          modalRoomImage.src = `../img/rooms/${roomType}.jpg`;
-          modalRoomType.textContent = `${roomType.charAt(0).toUpperCase() + roomType.slice(1)} Room`;
-          modalRoomNumber.textContent = roomNumber;
-          modalRoomPrice.textContent = parseFloat(roomPrice).toLocaleString();
-        });
-      });
-
-      // Handle "Book Now" button click
-      document.querySelectorAll('.book-now').forEach(button => {
-        button.addEventListener('click', function() {
-          const roomId = this.getAttribute('data-room-id');
-          const roomType = this.getAttribute('data-room-type');
-          const roomPrice = this.getAttribute('data-room-price');
-          const checkInDate = document.getElementById('checkInDate').value;
-          const checkOutDate = document.getElementById('checkOutDate').value;
-
-          if (!checkInDate || !checkOutDate) {
-            Swal.fire({
-              icon: 'warning',
-              title: 'Missing Dates',
-              text: 'Please select check-in and check-out dates before booking.',
-            });
-            return;
-          }
-
-          // Show confirmation dialog
-          Swal.fire({
-            title: 'Confirm Booking',
-            text: `Are you sure you want to book a ${roomType} room from ${checkInDate} to ${checkOutDate}?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Book Now',
-            cancelButtonText: 'Cancel',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              // Show loading state
-              button.disabled = true;
-              button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Booking...';
-
-              // Send booking data to the server
-              fetch('book_room.php', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `roomId=${roomId}&checkIn=${checkInDate}&checkOut=${checkOutDate}&roomType=${roomType}&roomPrice=${roomPrice}`
-              })
-              .then(response => response.json())
-              .then(data => {
-                if (data.success) {
-                  Swal.fire({
-                    icon: 'success',
-                    title: 'Booking Confirmed',
-                    text: 'Your room has been successfully booked!',
-                  }).then(() => {
-                    location.reload(); // Reload the page to update the UI
-                  });
-                } else {
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'Booking Failed',
-                    text: data.message || 'Failed to book the room. Please try again.',
-                  });
-                }
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error',
-                  text: 'An error occurred while booking the room. Please try again.',
-                });
-              })
-              .finally(() => {
-                button.disabled = false;
-                button.innerHTML = '<i class="bi bi-calendar-check me-2"></i>Book Now';
-              });
-            }
-          });
-        });
-      });
     });
 
-    // Helper function for room descriptions
-    
+    document.getElementById('confirmBooking').addEventListener('click', function () {
+        const checkIn = document.getElementById('modalCheckIn').value;
+        const checkOut = document.getElementById('modalCheckOut').value;
+        const roomId = document.querySelector('.book-now[data-room-id]').getAttribute('data-room-id');
+
+        if (checkIn && checkOut) {
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ room_id: roomId, check_in: checkIn, check_out: checkOut }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Booking Confirmed',
+                        text: data.message,
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking Failed',
+                        text: data.message,
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred.',
+                });
+            });
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Incomplete Details',
+                text: 'Please select both check-in and check-out dates.',
+            });
+        }
+    });
   </script>
 
 </body>

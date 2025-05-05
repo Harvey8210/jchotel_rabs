@@ -1,43 +1,24 @@
 <?php
-require_once '../config/db_connection.php';
-session_start();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['check_in'], $_POST['check_out'])) {
+    $roomId = $_POST['room_id'];
+    $checkIn = $_POST['check_in'];
+    $checkOut = $_POST['check_out'];
+    $customerId = $_SESSION['customer_id']; // Assuming customer is logged in
 
-header('Content-Type: application/json');
+    $query = "INSERT INTO reservations (room_id, customer_id, check_in, check_out, status) VALUES (?, ?, ?, ?, 'pending')";
+    $stmt = $conn->prepare($query);
 
-// Check if the user is logged in
-if (!isset($_SESSION['customer_id']) || $_SESSION['role'] !== 'customer') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access.']);
-    exit();
+    if ($stmt) {
+        $stmt->bind_param("iiss", $roomId, $customerId, $checkIn, $checkOut);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Reservation successfully created.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to create reservation.']);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Database error.']);
+    }
+    exit;
 }
-
-// Validate input
-if (!isset($_POST['roomId'], $_POST['checkIn'], $_POST['checkOut'], $_POST['roomType'], $_POST['roomPrice'])) {
-    echo json_encode(['success' => false, 'message' => 'Invalid input.']);
-    exit();
-}
-
-$roomId = intval($_POST['roomId']);
-$checkIn = $_POST['checkIn'];
-$checkOut = $_POST['checkOut'];
-$customerId = $_SESSION['customer_id'];
-$status = 'pending';
-
-// Insert the reservation into the database
-$query = "INSERT INTO reservations (room_id, customer_id, check_in, check_out, status) VALUES (?, ?, ?, ?, ?)";
-$stmt = $conn->prepare($query);
-
-if (!$stmt) {
-    echo json_encode(['success' => false, 'message' => 'Failed to prepare the statement.']);
-    exit();
-}
-
-$stmt->bind_param('iisss', $roomId, $customerId, $checkIn, $checkOut, $status);
-
-if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Room booked successfully.']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Failed to book the room.']);
-}
-
-$stmt->close();
-$conn->close();
+?>

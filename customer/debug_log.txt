@@ -1,0 +1,5 @@
+CheckIn: 2025-04-25, CheckOut: 2025-04-26
+Conflict Count: 1
+Total Rooms: 5
+CheckIn: 2025-04-25, CheckOut: 2025-04-26
+CheckIn: 2025-04-25, CheckOut: 2025-04-27
