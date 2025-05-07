@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['ch
             </a>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-              <li><a class="dropdown-item" href="my_bookings.php">My Bookings</a></li>
+              <li><a class="dropdown-item" href="mybookings.php">My Bookings</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>
@@ -283,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['ch
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="bookNowModalLabel">Room Details</h5>
+                    <h5 class="modal-title" id="bookNowModalLabel">Room Booking Options</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -291,21 +291,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['ch
                     <p><strong>Room Type:</strong> <span id="modalRoomType"></span></p>
                     <p><strong>Description:</strong> <span id="modalRoomDescription"></span></p>
                     <p><strong>Price per Night:</strong> ₱<span id="modalRoomPrice"></span></p>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="modalCheckIn" class="form-label">Check-In Date</label>
-                            <input type="date" id="modalCheckIn" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="modalCheckOut" class="form-label">Check-Out Date</label>
-                            <input type="date" id="modalCheckOut" class="form-control">
-                        </div>
+                    <div class="form-group mt-3">
+                        <label for="optionalNotes" class="form-label"><strong>Notes</strong>(Optional)</label>
+                        <textarea id="optionalNotes" class="form-control" rows="3" placeholder="Add any special requests or notes..."></textarea>
                     </div>
-                    <p class="mt-3"><strong>Total Price:</strong> ₱<span id="modalTotalPrice">0</span></p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="confirmBooking">Confirm Booking</button>
+                    <button type="button" class="btn btn-primary" id="addBookButton">Add Book</button>
+                    <button type="button" class="btn btn-primary" id="proceedButton">Proceed</button>
                 </div>
             </div>
         </div>
@@ -669,25 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['ch
                         document.getElementById('modalRoomType').textContent = roomType;
                         document.getElementById('modalRoomDescription').textContent = roomDescription;
                         document.getElementById('modalRoomPrice').textContent = roomPrice;
-
-                        const checkInInput = document.getElementById('modalCheckIn');
-                        const checkOutInput = document.getElementById('modalCheckOut');
-                        const totalPriceElement = document.getElementById('modalTotalPrice');
-
-                        function calculateTotalPrice() {
-                            const checkInDate = new Date(checkInInput.value);
-                            const checkOutDate = new Date(checkOutInput.value);
-                            if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
-                                const days = (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24);
-                                const totalPrice = days * roomPrice;
-                                totalPriceElement.textContent = totalPrice.toFixed(2);
-                            } else {
-                                totalPriceElement.textContent = '0';
-                            }
-                        }
-
-                        checkInInput.addEventListener('change', calculateTotalPrice);
-                        checkOutInput.addEventListener('change', calculateTotalPrice);
+                        document.getElementById('modalRoomNumber').setAttribute('data-room-id', roomId);
 
                         const modal = new bootstrap.Modal(document.getElementById('bookNowModal'));
                         modal.show();
@@ -702,50 +677,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id'], $_POST['ch
         });
     });
 
-    document.getElementById('confirmBooking').addEventListener('click', function () {
-        const checkIn = document.getElementById('modalCheckIn').value;
-        const checkOut = document.getElementById('modalCheckOut').value;
-        const roomId = document.querySelector('.book-now[data-room-id]').getAttribute('data-room-id');
+    document.getElementById('addBookButton').addEventListener('click', function () {
+        const roomId = document.getElementById('modalRoomNumber').getAttribute('data-room-id');
+        const checkIn = document.getElementById('checkIn').value;
+        const checkOut = document.getElementById('checkOut').value;
+        const notes = document.getElementById('optionalNotes').value;
 
-        if (checkIn && checkOut) {
-            fetch('', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ room_id: roomId, check_in: checkIn, check_out: checkOut }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Booking Confirmed',
-                        text: data.message,
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Booking Failed',
-                        text: data.message,
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        if (!roomId || !checkIn || !checkOut) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Information',
+                text: 'Please ensure all fields are filled out.',
+            });
+            return;
+        }
+
+        fetch('book_room.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                room_id: roomId,
+                check_in: checkIn,
+                check_out: checkOut,
+                notes: notes
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bookNowModal'));
+                modal.hide();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Booking Successful',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An unexpected error occurred.',
+                    text: data.message || 'Failed to create reservation.',
                 });
-            });
-        } else {
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             Swal.fire({
-                icon: 'warning',
-                title: 'Incomplete Details',
-                text: 'Please select both check-in and check-out dates.',
+                icon: 'error',
+                title: 'Error',
+                text: 'An unexpected error occurred.',
             });
-        }
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.book-now').forEach(button => {
+            button.addEventListener('click', function () {
+                const roomId = this.getAttribute('data-room-id');
+                const roomNumber = this.closest('.room-info').querySelector('h4').textContent;
+                const roomType = this.closest('.room-info').querySelector('p:nth-of-type(2)').textContent.split(': ')[1];
+                const roomDescription = this.closest('.room-info').querySelector('p:nth-of-type(1)').textContent;
+                const roomPrice = parseFloat(this.closest('.room-info').querySelector('p:nth-of-type(3)').textContent.split('₱')[1]);
+
+                document.getElementById('modalRoomNumber').textContent = roomNumber;
+                document.getElementById('modalRoomType').textContent = roomType;
+                document.getElementById('modalRoomDescription').textContent = roomDescription;
+                document.getElementById('modalRoomPrice').textContent = roomPrice;
+
+                const modal = new bootstrap.Modal(document.getElementById('bookNowModal'));
+                modal.show();
+            });
+        });
+
+      
+
+        document.getElementById('proceedButton').addEventListener('click', function () {
+            alert('Proceed functionality to be implemented.');
+        });
     });
   </script>
 

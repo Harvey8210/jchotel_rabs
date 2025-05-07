@@ -1,5 +1,525 @@
-CheckIn: 2025-04-25, CheckOut: 2025-04-26
-Conflict Count: 1
-Total Rooms: 5
-CheckIn: 2025-04-25, CheckOut: 2025-04-26
-CheckIn: 2025-04-25, CheckOut: 2025-04-27
+Session data: Array
+(
+    [customer_id] => 2
+    [email] => pajayao11@gmail.com
+    [full_name] => Harvey Pajayao
+    [role] => customer
+)
+Database connection successfulReceived data: Array
+(
+    [room_id] => 100
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+Session customer_id: 2Bound parameters: room_id=100, customer_id=2, check_in=2025-05-05, check_out=2025-05-08Session data: Array
+(
+    [customer_id] => 2
+    [email] => pajayao11@gmail.com
+    [full_name] => Harvey Pajayao
+    [role] => customer
+)
+Database connection successfulReceived data: Array
+(
+    [room_id] => 100
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-07
+    [notes] => 
+)
+Session customer_id: 2Session data: Array
+(
+    [customer_id] => 2
+    [email] => pajayao11@gmail.com
+    [full_name] => Harvey Pajayao
+    [role] => customer
+)
+Database connection successfulReceived data: Array
+(
+    [room_id] => 100
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-07
+    [notes] => asdasdsadas
+)
+Session customer_id: 2Bound parameters: room_id=100, customer_id=2, check_in=2025-05-05, check_out=2025-05-07Session data: Array
+(
+    [customer_id] => 2
+    [email] => pajayao11@gmail.com
+    [full_name] => Harvey Pajayao
+    [role] => customer
+)
+Database connection successfulReceived data: Array
+(
+    [room_id] => 100
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-16
+    [notes] => 
+)
+Bound parameters: room_id=100, customer_id=2, check_in=2025-05-05, check_out=2025-05-16Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-08"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-08
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-08
+Reservation created successfully. ID: 19
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-08"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-08
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-08
+Reservation created successfully. ID: 20
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-14"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-14
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-14
+Reservation created successfully. ID: 21
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-09
+Reservation created successfully. ID: 22
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-09
+Reservation created successfully. ID: 23
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-09
+Reservation created successfully. ID: 24
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-14"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-14
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-14
+Reservation created successfully. ID: 25
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-09
+Reservation created successfully. ID: 26
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-07"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-07
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-07
+Reservation created successfully. ID: 27
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-09
+Reservation created successfully. ID: 28
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 29
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 30
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 31
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-05","check_out":"2025-05-07"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-05
+    [check_out] => 2025-05-07
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-05, check_out=2025-05-07
+Reservation created successfully. ID: 32
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 33
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 34
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-08"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-08
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-08
+Reservation created successfully. ID: 1
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-06","check_out":"2025-05-09"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-09
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-06, check_out=2025-05-09
+Reservation created successfully. ID: 2
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-14","check_out":"2025-05-17"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-14
+    [check_out] => 2025-05-17
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-14, check_out=2025-05-17
+Reservation created successfully. ID: 3
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-07","check_out":"2025-05-10"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-10
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-10
+Reservation created successfully. ID: 4
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-07","check_out":"2025-05-17"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-17
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-17
+Reservation created successfully. ID: 5
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-10","check_out":"2025-05-12"}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-10
+    [check_out] => 2025-05-12
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-10, check_out=2025-05-12
+Reservation created successfully. ID: 6
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-07","check_out":"2025-05-08"}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-07, check_out=2025-05-08
+Reservation created successfully. ID: 7
+Request Method: POST
+Raw Input: {"room_id":"5","check_in":"2025-05-15","check_out":"2025-05-16"}
+Decoded Data: Array
+(
+    [room_id] => 5
+    [check_in] => 2025-05-15
+    [check_out] => 2025-05-16
+)
+
+Sanitized Data: room_id=5, customer_id=2, check_in=2025-05-15, check_out=2025-05-16
+Reservation created successfully. ID: 8
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-09","check_out":"2025-05-12","notes":"pool and aircon\n"}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-09
+    [check_out] => 2025-05-12
+    [notes] => pool and aircon
+
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-09, check_out=2025-05-12
+Reservation created successfully. ID: 9
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-09","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-09
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-09, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 10
+Request Method: POST
+Raw Input: {"room_id":"3","check_in":"2025-05-09","check_out":"2025-05-10","notes":"pool and aircon"}
+Decoded Data: Array
+(
+    [room_id] => 3
+    [check_in] => 2025-05-09
+    [check_out] => 2025-05-10
+    [notes] => pool and aircon
+)
+
+Sanitized Data: room_id=3, customer_id=2, check_in=2025-05-09, check_out=2025-05-10, notes=pool and aircon
+Reservation created successfully. ID: 11
+Request Method: POST
+Raw Input: {"room_id":"5","check_in":"2025-05-07","check_out":"2025-05-08","notes":"notes and pool"}
+Decoded Data: Array
+(
+    [room_id] => 5
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => notes and pool
+)
+
+Sanitized Data: room_id=5, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=notes and pool
+Reservation created successfully. ID: 12
+Request Method: POST
+Raw Input: {"room_id":"4","check_in":"2025-05-06","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 4
+    [check_in] => 2025-05-06
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=4, customer_id=2, check_in=2025-05-06, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 13
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-07","check_out":"2025-05-08","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
+Reservation created successfully. ID: 14
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-08","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-08
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-08, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 15
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-08","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-08
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-08, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 16
+Request Method: POST
+Raw Input: {"room_id":"3","check_in":"2025-05-08","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 3
+    [check_in] => 2025-05-08
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=3, customer_id=2, check_in=2025-05-08, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 17
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-07","check_out":"2025-05-09","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-09
+    [notes] => 
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-07, check_out=2025-05-09, notes=
+Reservation created successfully. ID: 18
+Request Method: POST
+Raw Input: {"room_id":"3","check_in":"2025-05-07","check_out":"2025-05-09","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 3
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-09
+    [notes] => 
+)
+
+Sanitized Data: room_id=3, customer_id=2, check_in=2025-05-07, check_out=2025-05-09, notes=
+Reservation created successfully. ID: 19
+Request Method: POST
+Raw Input: {"room_id":"5","check_in":"2025-05-07","check_out":"2025-05-09","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 5
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-09
+    [notes] => 
+)
+
+Sanitized Data: room_id=5, customer_id=2, check_in=2025-05-07, check_out=2025-05-09, notes=
+Reservation created successfully. ID: 20
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-07","check_out":"2025-05-08","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
+Reservation created successfully. ID: 21
+Request Method: POST
+Raw Input: {"room_id":"2","check_in":"2025-05-07","check_out":"2025-05-08","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 2
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+
+Sanitized Data: room_id=2, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
+Reservation created successfully. ID: 22
+Request Method: POST
+Raw Input: {"room_id":"3","check_in":"2025-05-07","check_out":"2025-05-08","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 3
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+
+Sanitized Data: room_id=3, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
+Reservation created successfully. ID: 23
+Request Method: POST
+Raw Input: {"room_id":"3","check_in":"2025-05-07","check_out":"2025-05-10","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 3
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-10
+    [notes] => 
+)
+
+Sanitized Data: room_id=3, customer_id=2, check_in=2025-05-07, check_out=2025-05-10, notes=
+Reservation created successfully. ID: 24
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-07","check_out":"2025-05-08","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-07
+    [check_out] => 2025-05-08
+    [notes] => 
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
+Reservation created successfully. ID: 25

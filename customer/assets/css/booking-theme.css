@@ -1,0 +1,227 @@
+:root {
+    --primary-color: #2fc155;
+    --primary-dark: #248c3f;
+    --primary-light: #e8f5e9;
+    --accent-color: #ffbc34;
+    --text-primary: #2f4d5a;
+    --text-secondary: #6c757d;
+    --surface-color: #ffffff;
+    --background-color: #f8f9fa;
+    --danger-color: #f62d51;
+    --success-color: #36bea6;
+    --border-radius: 10px;
+    --box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Card Styles */
+.booking-card {
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    animation: fadeInUp 0.5s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.booking-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.booking-header {
+    background: var(--primary-color);
+    color: var(--surface-color);
+    padding: 1.25rem;
+    position: relative;
+}
+
+.booking-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-transform: capitalize;
+}
+
+.status-badge.bg-warning {
+    background-color: var(--accent-color) !important;
+    color: #000;
+}
+    
+.status-badge.bg-success {
+    background-color: var(--success-color) !important;
+    color: #fff;
+}
+
+.status-badge.bg-danger {
+    background-color: var(--danger-color) !important;
+    color: #fff;
+}
+
+.room-details {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.room-details p {
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.room-details strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.room-details .price {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.booking-card-footer {
+    padding: 1rem;
+    background: var(--background-color);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.booking-card-footer .subtotal-text {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.booking-card-footer .subtotal-amount {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.btn-success {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    padding: 0.625rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Navigation Tabs */
+.nav-tabs {
+    border-bottom: 2px solid var(--primary-light);
+    margin-bottom: 2rem;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    margin-right: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background: transparent;
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-color);
+    border-color: transparent;
+}
+
+/* Loading States */
+.tab-pane {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.tab-pane:not(.show) {
+    opacity: 0;
+}
+
+.tab-pane.show {
+    opacity: 1;
+}
+
+/* Smooth Transitions */
+.booking-list {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 600px), 1fr));
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Alert Enhancements */
+.alert {
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alert-info {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.alert-info .alert-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.alert-info .alert-link:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .booking-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .status-badge {
+        margin-top: 0.5rem;
+    }
+    
+    .room-details {
+        padding: 1rem;
+    }
+}
+
+/* Remove the global sticky footer styles */
+.sticky-footer {
+    display: none;
+}
