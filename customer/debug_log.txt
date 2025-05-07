@@ -523,3 +523,15 @@ Decoded Data: Array
 
 Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-07, check_out=2025-05-08, notes=
 Reservation created successfully. ID: 25
+Request Method: POST
+Raw Input: {"room_id":"1","check_in":"2025-05-08","check_out":"2025-05-15","notes":""}
+Decoded Data: Array
+(
+    [room_id] => 1
+    [check_in] => 2025-05-08
+    [check_out] => 2025-05-15
+    [notes] => 
+)
+
+Sanitized Data: room_id=1, customer_id=2, check_in=2025-05-08, check_out=2025-05-15, notes=
+Reservation created successfully. ID: 26

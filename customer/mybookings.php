@@ -523,8 +523,8 @@ if (!isset($_SESSION['customer_id'])) {
                             <div class="col-3"><strong>Room</strong></div>
                             <div class="col-2 text-center"><strong>Nights</strong></div>
                             <div class="col-3"><strong>Total Price</strong></div>
-                            <div class="col-2"><strong>Payment Status</strong></div>
-                            <div class="col-2"><strong>Action</strong></div>
+                            <div class="col-2"><strong>Notes</strong></div>
+                            <div class="col-2"><strong>Additional Payment</strong></div>
                         </div>
                     </div>
                     
@@ -534,7 +534,11 @@ if (!isset($_SESSION['customer_id'])) {
                         </div>
                         <?php
                         // Fetch available loyalty points
-                        $loyaltyQuery = "SELECT SUM(points) AS available_points FROM loyalty_transactions WHERE customer_id = ? AND status = 'earned'";
+                        $loyaltyQuery = "SELECT 
+                                            (SUM(CASE WHEN status = 'earned' THEN points ELSE 0 END) - 
+                                             SUM(CASE WHEN status = 'redeemed' THEN points ELSE 0 END)) AS available_points 
+                                         FROM loyalty_transactions 
+                                         WHERE customer_id = ?";
                         $loyaltyStmt = $conn->prepare($loyaltyQuery);
                         $loyaltyStmt->bind_param("i", $customer_id);
                         $loyaltyStmt->execute();
@@ -544,7 +548,7 @@ if (!isset($_SESSION['customer_id'])) {
 
                         $status = 'payment';
                         $query = "SELECT r.*, rm.room_number, rm.type as room_type, rm.price, rm.image,
-                                 b.billing_id, b.total_amount, b.status as payment_status, b.group_number, b.add_req_payment,
+                                 b.billing_id, b.total_amount, b.group_number, IFNULL(b.add_req_payment, 0) AS add_req_payment,
                                  DATEDIFF(r.check_out, r.check_in) as nights
                                  FROM reservations r 
                                  JOIN rooms rm ON r.room_id = rm.room_id 
@@ -564,7 +568,7 @@ if (!isset($_SESSION['customer_id'])) {
 
                         if (empty($groupedBookings)) {
                             echo '<div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>No checking bookings found.
+                                <i class="fas fa-info-circle me-2"></i>No payment bookings found.
                               </div>';
                         }
 
@@ -579,8 +583,6 @@ if (!isset($_SESSION['customer_id'])) {
                             echo '</div>';
 
                             foreach ($bookings as $booking) {
-                                $paymentStatus = $booking['payment_status'] ?? 'Pending';
-                                $paymentBadgeClass = $paymentStatus === 'Paid' ? 'bg-success' : 'bg-warning';
                                 $totalAmount = $booking['total_amount'] ?? ($booking['price'] * $booking['nights']);
                                 $groupTotal += $totalAmount;
                                 $additionalPaymentTotal += $booking['add_req_payment'] ?? 0;
@@ -589,8 +591,8 @@ if (!isset($_SESSION['customer_id'])) {
                                 echo '<div class="col-3">' . htmlspecialchars($booking['room_number']) . ' - ' . ucfirst(htmlspecialchars($booking['room_type'])) . '</div>';
                                 echo '<div class="col-2 text-center">' . $booking['nights'] . ' Night(s)</div>';
                                 echo '<div class="col-3">₱' . number_format($totalAmount, 2) . '</div>';
-                                echo '<div class="col-2"><span class="badge ' . $paymentBadgeClass . ' status-badge">' . $paymentStatus . '</span></div>';
-                                echo '<div class="col-2"><button type="button" class="btn btn-sm btn-outline-info view-billing" data-billing-id="' . ($booking['billing_id'] ?? '') . '"><i class="fas fa-eye"></i></button></div>';
+                                echo '<div class="col-2">' . (!empty($booking['notes']) ? htmlspecialchars($booking['notes']) : 'No notes available') . '</div>';
+                                echo '<div class="col-2">₱' . number_format($booking['add_req_payment'], 2) . '</div>';
                                 echo '</div>';
                             }
 
@@ -612,8 +614,51 @@ if (!isset($_SESSION['customer_id'])) {
                             echo '<div class="mt-2 pt-2 border-top row"><span class="col-auto text-muted text-start h5">Grand Total:</span> <strong class="col text-end text-success h5 grand-total">₱' . 
                                 number_format($groupTotal + $additionalPaymentTotal,  2) . 
                                 '</strong></div>';
-                            echo '<div class="mt-3 text-end"><button type="button" class="btn btn-primary">Pay Now</button></div>';
+
+                            // Radio buttons for payment method
+                            echo '<div class="mt-3">';
+                            echo '<div class="form-check d-flex justify-content-between align-items-center">';
+                            echo '<label class="form-check-label me-2" for="cashPayment">Cash</label>';
+                            echo '<input class="form-check-input payment-method" type="radio" name="paymentMethod" id="cashPayment" value="cash">';
                             echo '</div>';
+                            echo '<div class="form-check d-flex justify-content-between align-items-center">';
+                            echo '<label class="form-check-label me-2" for="earlyPayment">Early Payment Discount (3%)</label>';
+                            echo '<input class="form-check-input payment-method" type="radio" name="paymentMethod" id="earlyPayment" value="early">';
+                            echo '</div>';
+                            echo '<div class="mt-3 text-end">';
+                            echo '<button type="button" class="btn btn-primary d-none" id="submitCashPayment">Submit</button>';
+                            echo '<button type="button" class="btn btn-success d-none" id="submitGcashPayment">Pay with GCash</button>';
+                            echo '</div>';
+                            echo '<script>';
+                            echo 'document.addEventListener("DOMContentLoaded", function() {';
+                            echo '    const paymentMethods = document.querySelectorAll(".payment-method");';
+                            echo '    paymentMethods.forEach(method => {';
+                            echo '        method.addEventListener("change", function() {';
+                            echo '            const grandTotalElement = this.closest(".booking-card").querySelector(".grand-total");';
+                            echo '            const groupTotal = parseFloat(this.closest(".booking-card").querySelector(".loyalty-points").getAttribute("data-group-total"));';
+                            echo '            const additionalPayment = parseFloat(this.closest(".booking-card").querySelector(".loyalty-points").getAttribute("data-additional-payment"));';
+                            echo '            let grandTotal = groupTotal + additionalPayment;';
+                            echo '            if (this.value === "early") {';
+                            echo '                const discount = grandTotal * 0.03;';
+                            echo '                grandTotal -= discount;';
+                            echo '            }';
+                            echo '            grandTotalElement.textContent = "₱" + grandTotal.toLocaleString("en-US", {';
+                            echo '                minimumFractionDigits: 2,';
+                            echo '                maximumFractionDigits: 2';
+                            echo '            });';
+                            echo '        });';
+                            echo '    });';
+                            echo '});';
+                            echo '</script>';
+                            echo '</div>';
+                            echo '</div>';
+
+                            // Buttons for payment actions
+                            echo '<div class="mt-3 text-end">';
+                            echo '<button type="button" class="btn btn-primary d-none" id="submitCashPayment">Submit</button>';
+                            echo '<button type="button" class="btn btn-success d-none" id="submitGcashPayment">Pay with GCash</button>';
+                            echo '</div>';
+
                             echo '</div>';
                             echo '</div>';
                             echo '</div>';
@@ -621,6 +666,26 @@ if (!isset($_SESSION['customer_id'])) {
                         ?>
                     </div>
                 </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const cashPaymentButton = document.getElementById('submitCashPayment');
+                        const gcashPaymentButton = document.getElementById('submitGcashPayment');
+                        const paymentMethods = document.querySelectorAll('.payment-method');
+
+                        paymentMethods.forEach(method => {
+                            method.addEventListener('change', function() {
+                                if (this.value === 'cash') {
+                                    cashPaymentButton.classList.remove('d-none');
+                                    gcashPaymentButton.classList.add('d-none');
+                                } else if (this.value === 'early') {
+                                    gcashPaymentButton.classList.remove('d-none');
+                                    cashPaymentButton.classList.add('d-none');
+                                }
+                            });
+                        });
+                    });
+                </script>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         document.querySelectorAll('.loyalty-points').forEach(input => {
