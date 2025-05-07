@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: May 05, 2025 at 09:57 PM
+-- Generation Time: May 07, 2025 at 09:18 PM
 -- Server version: 9.1.0
 -- PHP Version: 8.3.14
 
@@ -76,14 +76,26 @@ CREATE TABLE IF NOT EXISTS `billing` (
   `group_number` int NOT NULL,
   `reservation_id` int NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
+  `add_req_payment` int NOT NULL,
   `discount` decimal(10,2) DEFAULT '0.00',
-  `loyalty_points_used` int DEFAULT '0',
   `final_amount` decimal(10,2) GENERATED ALWAYS AS ((`total_amount` - `discount`)) STORED,
-  `status` enum('unpaid','paid','cancelled') DEFAULT 'unpaid',
+  `status` enum('checking','payment','unpaid','paid','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'unpaid',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`billing_id`),
   KEY `reservation_id` (`reservation_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `billing`
+--
+
+INSERT INTO `billing` (`billing_id`, `group_number`, `reservation_id`, `total_amount`, `add_req_payment`, `discount`, `status`, `created_at`) VALUES
+(67, 0, 22, 1890.00, 0, 0.00, 'payment', '2025-05-07 16:25:58'),
+(66, 0, 23, 1890.00, 100, 0.00, 'payment', '2025-05-07 11:00:13'),
+(65, 0, 24, 5670.00, 200, 0.00, 'payment', '2025-05-07 09:54:30'),
+(64, 0, 25, 1890.00, 0, 0.00, 'payment', '2025-05-07 09:54:30'),
+(68, 0, 21, 1890.00, 0, 0.00, 'payment', '2025-05-07 16:25:58'),
+(69, 0, 26, 13230.00, 0, 0.00, 'payment', '2025-05-07 18:44:31');
 
 -- --------------------------------------------------------
 
@@ -131,7 +143,6 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `phone` varchar(20) DEFAULT NULL,
   `address` text,
   `password` text NOT NULL,
-  `loyalty_points` int DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`customer_id`),
   UNIQUE KEY `email` (`email`)
@@ -141,9 +152,9 @@ CREATE TABLE IF NOT EXISTS `customers` (
 -- Dumping data for table `customers`
 --
 
-INSERT INTO `customers` (`customer_id`, `full_name`, `email`, `phone`, `address`, `password`, `loyalty_points`, `created_at`) VALUES
-(2, 'Harvey Pajayao', 'pajayao11@gmail.com', '09757693012', 'Sulit, Polomolok, South Cotabato', '$2y$10$1YBnV7bevtSp3DrKiOlL.utZnidmEnBi4UxwaKAVf4yS6yTI7/uFq', 0, '2025-04-02 09:40:02'),
-(3, 'Marktitus Montales', 'montales@gmail.com', '09123455678', 'tantangan', '$2y$10$yL83BDqPLtNIytlfwoEfWeRyXhKu6XEG.PffgVC26V1LgLFkdB7cq', 0, '2025-04-02 19:15:51');
+INSERT INTO `customers` (`customer_id`, `full_name`, `email`, `phone`, `address`, `password`, `created_at`) VALUES
+(2, 'Harvey Pajayao', 'pajayao11@gmail.com', '09757693012', 'Sulit, Polomolok, South Cotabato', '$2y$10$1YBnV7bevtSp3DrKiOlL.utZnidmEnBi4UxwaKAVf4yS6yTI7/uFq', '2025-04-02 09:40:02'),
+(3, 'Marktitus Montales', 'montales@gmail.com', '09123455678', 'tantangan', '$2y$10$yL83BDqPLtNIytlfwoEfWeRyXhKu6XEG.PffgVC26V1LgLFkdB7cq', '2025-04-02 19:15:51');
 
 -- --------------------------------------------------------
 
@@ -177,14 +188,15 @@ CREATE TABLE IF NOT EXISTS `loyalty_transactions` (
   `transaction_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`transaction_id`),
   KEY `fk_customer_id` (`customer_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `loyalty_transactions`
 --
 
 INSERT INTO `loyalty_transactions` (`transaction_id`, `customer_id`, `points`, `status`, `transaction_date`) VALUES
-(1, 2, 200, 'earned', '2025-04-02 18:50:28');
+(1, 2, 200, 'earned', '2025-04-02 18:50:28'),
+(2, 2, 50, 'redeemed', '2025-05-07 20:18:48');
 
 -- --------------------------------------------------------
 
@@ -195,13 +207,13 @@ INSERT INTO `loyalty_transactions` (`transaction_id`, `customer_id`, `points`, `
 DROP TABLE IF EXISTS `payments`;
 CREATE TABLE IF NOT EXISTS `payments` (
   `payment_id` int NOT NULL AUTO_INCREMENT,
-  `billing_id` int NOT NULL,
+  `payable_amount` decimal(10,2) NOT NULL,
   `amount_paid` decimal(10,2) NOT NULL,
-  `payment_method` enum('cash','credit_card','debit_card','digital_wallet') NOT NULL,
+  `payment_method` enum('cash','gcash') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `status` enum('paid','unpaid') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `payment_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`payment_id`),
-  KEY `billing_id` (`billing_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  PRIMARY KEY (`payment_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Triggers `payments`
@@ -261,13 +273,25 @@ CREATE TABLE IF NOT EXISTS `reservations` (
   `room_id` int NOT NULL,
   `check_in` datetime NOT NULL,
   `check_out` datetime NOT NULL,
-  `status` enum('pending','confirmed','checked-in','checked-out') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending',
+  `status` enum('pending','checking','confirmed','checked-in','checked-out') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending',
   `notes` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`reservation_id`),
   KEY `customer_id` (`customer_id`),
   KEY `room_id` (`room_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`reservation_id`, `customer_id`, `room_id`, `check_in`, `check_out`, `status`, `notes`, `created_at`) VALUES
+(21, 2, 1, '2025-05-07 00:00:00', '2025-05-08 00:00:00', 'checking', '', '2025-05-07 04:24:09'),
+(22, 2, 2, '2025-05-07 00:00:00', '2025-05-08 00:00:00', 'checking', '', '2025-05-07 04:24:11'),
+(23, 2, 3, '2025-05-07 00:00:00', '2025-05-08 00:00:00', 'checking', '', '2025-05-07 04:24:13'),
+(24, 2, 3, '2025-05-07 00:00:00', '2025-05-10 00:00:00', 'checking', '', '2025-05-07 05:21:56'),
+(25, 2, 1, '2025-05-07 00:00:00', '2025-05-08 00:00:00', 'checking', '', '2025-05-07 06:43:02'),
+(26, 2, 1, '2025-05-08 00:00:00', '2025-05-15 00:00:00', 'checking', '', '2025-05-07 18:44:23');
 
 -- --------------------------------------------------------
 
