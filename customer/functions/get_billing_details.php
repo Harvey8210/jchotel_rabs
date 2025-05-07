@@ -19,10 +19,12 @@ $customer_id = $_SESSION['customer_id'];
 
 $query = "SELECT b.*, r.check_in, r.check_out, r.customer_id,
           rm.room_number, rm.type as room_type, rm.price as room_rate,
-          DATEDIFF(r.check_out, r.check_in) as nights
+          DATEDIFF(r.check_out, r.check_in) as nights,
+          p.payment_date, p.payment_method
           FROM billing b
           JOIN reservations r ON b.reservation_id = r.reservation_id
           JOIN rooms rm ON r.room_id = rm.room_id
+          LEFT JOIN payments p ON b.billing_id = p.billing_id
           WHERE b.billing_id = ? AND r.customer_id = ?";
 
 $stmt = $conn->prepare($query);

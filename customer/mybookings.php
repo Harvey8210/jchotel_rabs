@@ -351,8 +351,8 @@ if (!isset($_SESSION['customer_id'])) {
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
-                        <i class="fas fa-history me-2"></i>Completed
+                    <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">
+                        <i class="fas fa-history me-2"></i>Payment
                     </button>
                 </li>
             </ul>
@@ -437,34 +437,344 @@ if (!isset($_SESSION['customer_id'])) {
 
                 <!-- Checking Tab -->
                 <div class="tab-pane fade" id="checking" role="tabpanel">
+                    <!-- Label Card -->
+                    <div class="booking-card mb-3">
+                        <div class="row g-0">
+                            <div class="col-3"><strong>Room</strong></div>
+                            <div class="col-2 text-center"><strong>Nights</strong></div>
+                            <div class="col-3"><strong>Total Price</strong></div>
+                            <div class="col-2"><strong>Payment Status</strong></div>
+                            <div class="col-2"><strong>Action</strong></div>
+                        </div>
+                    </div>
                     
                     <div class="booking-list">
                         <div class="loading-overlay" id="checkingLoading">
                             <div class="spinner"></div>
                         </div>
                         <?php
-                        $status = 'chceking';
-                        $query = 
+                        $status = 'checking';
+                        $query = "SELECT r.*, rm.room_number, rm.type as room_type, rm.price, rm.image,
+                                 b.billing_id, b.total_amount, b.status as payment_status, b.group_number,
+                                 DATEDIFF(r.check_out, r.check_in) as nights
+                                 FROM reservations r 
+                                 JOIN rooms rm ON r.room_id = rm.room_id 
+                                 LEFT JOIN billing b ON r.reservation_id = b.reservation_id
+                                 WHERE r.customer_id = ? AND b.status = ?
+                                 ORDER BY b.group_number, r.created_at DESC";
 
                         $stmt = $conn->prepare($query);
                         $stmt->bind_param("is", $customer_id, $status);
                         $stmt->execute();
                         $result = $stmt->get_result();
 
-                        if ($result->num_rows === 0) {
+                        $groupedBookings = [];
+                        while ($booking = $result->fetch_assoc()) {
+                            $groupedBookings[$booking['group_number']][] = $booking;
+                        }
+
+                        if (empty($groupedBookings)) {
                             echo '<div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>No confirmed bookings found.
+                                <i class="fas fa-info-circle me-2"></i>No checking bookings found.
                               </div>';
                         }
 
-                        while ($booking = $result->fetch_assoc()) {
-                            echo '<div class="booking-card">
-                            
-                        </div>';
+                        foreach ($groupedBookings as $groupNumber => $bookings) {
+                            $groupTotal = 0;
+                            $roomCount = count($bookings);
+
+                            echo '<div class="booking-card">';
+                            echo '<div class="row g-0 align-items-center mb-2">';
+                            echo '<div class="col-12"><strong>Group Number: ' . htmlspecialchars($groupNumber) . '</strong></div>';
+                            echo '</div>';
+
+                            foreach ($bookings as $booking) {
+                                $paymentStatus = $booking['payment_status'] ?? 'Pending';
+                                $paymentBadgeClass = $paymentStatus === 'Paid' ? 'bg-success' : 'bg-warning';
+                                $totalAmount = $booking['total_amount'] ?? ($booking['price'] * $booking['nights']);
+                                $groupTotal += $totalAmount;
+
+                                echo '<div class="row g-0 align-items-center mb-2">';
+                                echo '<div class="col-3">' . htmlspecialchars($booking['room_number']) . ' - ' . ucfirst(htmlspecialchars($booking['room_type'])) . '</div>';
+                                echo '<div class="col-2 text-center">' . $booking['nights'] . ' Night(s)</div>';
+                                echo '<div class="col-3">₱' . number_format($totalAmount, 2) . '</div>';
+                                echo '<div class="col-2"><span class="badge ' . $paymentBadgeClass . ' status-badge">' . $paymentStatus . '</span></div>';
+                                echo '<div class="col-2"><button type="button" class="btn btn-sm btn-outline-info view-billing" data-billing-id="' . ($booking['billing_id'] ?? '') . '"><i class="fas fa-eye"></i></button></div>';
+                                echo '</div>';
+                            }
+
+                            echo '<div class="row g-0 align-items-center mt-3">';
+                            echo '<div class="col-12 text-end">';
+                            echo '<strong>Total Rooms:</strong> ' . $roomCount . ' | ';
+                            echo '<strong>Subtotal:</strong> ₱' . number_format($groupTotal, 2);
+                            echo '</div>';
+                            echo '</div>';
+                            echo '</div>';
                         }
                         ?>
                     </div>
                 </div>
+
+                <!-- Payment Tab -->
+                <div class="tab-pane fade" id="payment" role="tabpanel">
+                    <!-- Label Card -->
+                    <div class="booking-card mb-3">
+                        <div class="row g-0">
+                            <div class="col-3"><strong>Room</strong></div>
+                            <div class="col-2 text-center"><strong>Nights</strong></div>
+                            <div class="col-3"><strong>Total Price</strong></div>
+                            <div class="col-2"><strong>Payment Status</strong></div>
+                            <div class="col-2"><strong>Action</strong></div>
+                        </div>
+                    </div>
+                    
+                    <div class="booking-list">
+                        <div class="loading-overlay" id="checkingLoading">
+                            <div class="spinner"></div>
+                        </div>
+                        <?php
+                        // Fetch available loyalty points
+                        $loyaltyQuery = "SELECT SUM(points) AS available_points FROM loyalty_transactions WHERE customer_id = ? AND status = 'earned'";
+                        $loyaltyStmt = $conn->prepare($loyaltyQuery);
+                        $loyaltyStmt->bind_param("i", $customer_id);
+                        $loyaltyStmt->execute();
+                        $loyaltyResult = $loyaltyStmt->get_result();
+                        $loyaltyData = $loyaltyResult->fetch_assoc();
+                        $availablePoints = $loyaltyData['available_points'] ?? 0;
+
+                        $status = 'payment';
+                        $query = "SELECT r.*, rm.room_number, rm.type as room_type, rm.price, rm.image,
+                                 b.billing_id, b.total_amount, b.status as payment_status, b.group_number, b.add_req_payment,
+                                 DATEDIFF(r.check_out, r.check_in) as nights
+                                 FROM reservations r 
+                                 JOIN rooms rm ON r.room_id = rm.room_id 
+                                 LEFT JOIN billing b ON r.reservation_id = b.reservation_id
+                                 WHERE r.customer_id = ? AND b.status = ?
+                                 ORDER BY b.group_number, r.created_at DESC";
+
+                        $stmt = $conn->prepare($query);
+                        $stmt->bind_param("is", $customer_id, $status);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+
+                        $groupedBookings = [];
+                        while ($booking = $result->fetch_assoc()) {
+                            $groupedBookings[$booking['group_number']][] = $booking;
+                        }
+
+                        if (empty($groupedBookings)) {
+                            echo '<div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>No checking bookings found.
+                              </div>';
+                        }
+
+                        foreach ($groupedBookings as $groupNumber => $bookings) {
+                            $groupTotal = 0;
+                            $additionalPaymentTotal = 0;
+                            $roomCount = count($bookings);
+
+                            echo '<div class="booking-card">';
+                            echo '<div class="row g-0 align-items-center mb-2">';
+                            echo '<div class="col-12"><strong>Group Number: ' . htmlspecialchars($groupNumber) . '</strong></div>';
+                            echo '</div>';
+
+                            foreach ($bookings as $booking) {
+                                $paymentStatus = $booking['payment_status'] ?? 'Pending';
+                                $paymentBadgeClass = $paymentStatus === 'Paid' ? 'bg-success' : 'bg-warning';
+                                $totalAmount = $booking['total_amount'] ?? ($booking['price'] * $booking['nights']);
+                                $groupTotal += $totalAmount;
+                                $additionalPaymentTotal += $booking['add_req_payment'] ?? 0;
+
+                                echo '<div class="row g-0 align-items-center mb-2">';
+                                echo '<div class="col-3">' . htmlspecialchars($booking['room_number']) . ' - ' . ucfirst(htmlspecialchars($booking['room_type'])) . '</div>';
+                                echo '<div class="col-2 text-center">' . $booking['nights'] . ' Night(s)</div>';
+                                echo '<div class="col-3">₱' . number_format($totalAmount, 2) . '</div>';
+                                echo '<div class="col-2"><span class="badge ' . $paymentBadgeClass . ' status-badge">' . $paymentStatus . '</span></div>';
+                                echo '<div class="col-2"><button type="button" class="btn btn-sm btn-outline-info view-billing" data-billing-id="' . ($booking['billing_id'] ?? '') . '"><i class="fas fa-eye"></i></button></div>';
+                                echo '</div>';
+                            }
+
+                            echo '<div class="row g-0 align-items-center mt-3 border-top pt-2">';
+                            echo '<div class="col-12">';
+                            echo '<div class="d-flex justify-content-end">';
+                            echo '<div class="text-end">';
+                            echo '<div class="mb-1 row"><span class="col-auto text-muted text-start">Total Rooms:</span> <strong class="col text-end">' . $roomCount . '</strong></div>';
+                            echo '<div class="mb-1 row"><span class="col-auto text-muted text-start">Available Points:</span> <strong class="col text-end">' . number_format($availablePoints) . '</strong></div>';
+                            echo '<div class="mb-1 row"><span class="col-auto text-muted text-start">Loyalty Points:</span> 
+                                <div class="col text-end d-flex align-items-center">
+                                    <input type="number" class="form-control loyalty-points" value="" min="0" max="' . $availablePoints . '" style="display: inline-block; width: 80px; appearance: none;" data-group-total="' . $groupTotal . '" data-additional-payment="' . $additionalPaymentTotal . '">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 max-points-btn">Max</button>
+                                </div>
+                            </div>';
+                            echo '<div class="mb-1 row"><span class="col-auto text-muted text-start">Total Additional Payment:</span> <strong class="col text-end text-success">₱' . number_format($additionalPaymentTotal, 2) . '</strong></div>';
+                            echo '<div class="mb-1 row"><span class="col-auto text-muted text-start">Subtotal:</span> <strong class="col text-end">₱' . number_format($groupTotal, 2) . '</strong></div>';
+
+                            echo '<div class="mt-2 pt-2 border-top row"><span class="col-auto text-muted text-start h5">Grand Total:</span> <strong class="col text-end text-success h5 grand-total">₱' . 
+                                number_format($groupTotal + $additionalPaymentTotal,  2) . 
+                                '</strong></div>';
+                            echo '<div class="mt-3 text-end"><button type="button" class="btn btn-primary">Pay Now</button></div>';
+                            echo '</div>';
+                            echo '</div>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.querySelectorAll('.loyalty-points').forEach(input => {
+                            input.addEventListener('input', function() {
+                                const availablePoints = parseFloat(this.getAttribute('max'));
+                                const groupTotal = parseFloat(this.getAttribute('data-group-total'));
+                                const additionalPayment = parseFloat(this.getAttribute('data-additional-payment'));
+                                let loyaltyPoints = parseFloat(this.value) || 0;
+
+                                if (loyaltyPoints > availablePoints) {
+                                    loyaltyPoints = availablePoints;
+                                    this.value = availablePoints;
+                                }
+
+                                const grandTotal = Math.max(0, groupTotal + additionalPayment - loyaltyPoints);
+                                this.closest('.booking-card').querySelector('.grand-total').textContent = '₱' + grandTotal.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                            });
+                        });
+
+                        document.querySelectorAll('.max-points-btn').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const input = this.previousElementSibling;
+                                const maxPoints = parseFloat(input.getAttribute('max'));
+                                input.value = maxPoints;
+                                input.dispatchEvent(new Event('input'));
+                            });
+                        });
+                    });
+                </script>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.querySelectorAll('.loyalty-points').forEach(input => {
+                            input.addEventListener('input', function() {
+                                const groupTotal = parseFloat(this.getAttribute('data-group-total'));
+                                const additionalPayment = parseFloat(this.getAttribute('data-additional-payment'));
+                                const loyaltyPoints = parseFloat(this.value) || 0;
+                                const grandTotal = Math.max(0, groupTotal + additionalPayment - loyaltyPoints);
+                                this.closest('.booking-card').querySelector('.grand-total').textContent = '₱' + grandTotal.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                            });
+                        });
+                    });
+                </script></script>
+
+                <!-- Billing Details Modal -->
+                <div class="modal fade" id="billingDetailsModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Billing Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="billingDetails">
+                                    <!-- Content will be loaded dynamically -->
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Handle billing details view
+                        const billingModal = new bootstrap.Modal(document.getElementById('billingDetailsModal'));
+                        
+                        document.querySelectorAll('.view-billing').forEach(button => {
+                            button.addEventListener('click', async function() {
+                                const billingId = this.getAttribute('data-billing-id');
+                                if (!billingId) {
+                                    Swal.fire({
+                                        icon: 'info',
+                                        title: 'No Billing Information',
+                                        text: 'Billing information is not available for this booking.'
+                                    });
+                                    return;
+                                }
+
+                                try {
+                                    const response = await fetch(`functions/get_billing_details.php?billing_id=${billingId}`);
+                                    if (!response.ok) throw new Error('Failed to fetch billing details');
+                                    
+                                    const data = await response.json();
+                                    const billingDetails = document.getElementById('billingDetails');
+                                    
+                                    billingDetails.innerHTML = `
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <tr>
+                                                    <th>Billing ID</th>
+                                                    <td>${data.billing_id}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Room Details</th>
+                                                    <td>${data.room_number} - ${data.room_type}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Check In</th>
+                                                    <td>${new Date(data.check_in).toLocaleDateString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Check Out</th>
+                                                    <td>${new Date(data.check_out).toLocaleDateString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Number of Nights</th>
+                                                    <td>${data.nights}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Room Rate per Night</th>
+                                                    <td>₱${parseFloat(data.room_rate).toLocaleString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Total Amount</th>
+                                                    <td>₱${parseFloat(data.total_amount).toLocaleString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Payment Status</th>
+                                                    <td><span class="badge ${data.status === 'paid' ? 'bg-success' : 'bg-warning'}">${data.status}</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Payment Date</th>
+                                                    <td>${data.payment_date ? new Date(data.payment_date).toLocaleString() : 'Not paid yet'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Payment Method</th>
+                                                    <td>${data.payment_method || 'Not specified'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    `;
+                                    
+                                    billingModal.show();
+                                } catch (error) {
+                                    console.error('Error fetching billing details:', error);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Failed to load billing details. Please try again.'
+                                    });
+                                }
+                            });
+                        });
+                    });
+                </script>
 
             </div>
         </form>
@@ -483,9 +793,6 @@ if (!isset($_SESSION['customer_id'])) {
                 </div>
                 <div class="modal-body">
                     <p class="mb-0">Are you sure you want to delete this booking? This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmDelete">
                         <i class="fas fa-trash me-2"></i>Delete Booking
                     </button>
